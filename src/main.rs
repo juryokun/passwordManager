@@ -1,3 +1,4 @@
+use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
 use std::env;
@@ -66,9 +67,13 @@ fn execute(args: Vec<String>) -> Result<(), Box<Error>> {
 }
 
 fn grep(args: Vec<String>) -> Result<(), Box<Error>> {
+    let re = Regex::new(&args[2]).unwrap();
     let data = load_data();
     for rec in data.iter() {
-        println!("{:?}", rec);
+        let rel = re.find(&rec.service);
+        if rel != None {
+            println!("{:?}", rec);
+        }
     }
 
     Ok(())
