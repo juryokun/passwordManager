@@ -59,11 +59,54 @@ fn check_syntax(args: &Vec<String>) -> Result<(), Box<Error>> {
 }
 
 fn execute(args: Vec<String>) -> Result<(), Box<Error>> {
-    let command = "grep".to_string();
     match &args[1] {
-        command => grep(args)?,
+        "grep".to_string() => grep(args)?,
     }
     Ok(())
+}
+
+trait Command {
+    fn execute(self) -> ();
+}
+enum Operation {
+    List,
+    Show,
+    Grep,
+    Add,
+    Delete,
+    Update,
+}
+struct GrepCommand {
+    operation: Operation,
+    target: String
+}
+
+impl Command for GrepCommand {
+    fn execute(self) {
+        println!("{}", self.target);
+    }
+}
+fn parse (args: &Vec<String>) -> impl Command {
+    let arg1: &str = &args[1];
+     match arg1 {
+        "grep" => GrepCommand {
+            operation: Operation::Grep,
+            target: args[2].clone(),
+        },
+        // "show" => Operation::Show,
+        // "list" => Operation::List,
+        // "add" => Operation::Add,
+        // "delete" => Operation::Delete,
+        // "update" => Operation::Update,
+    }
+}
+
+struct GrepOptions {
+    target: String,
+}
+
+struct ShowOptions {
+    service: String,
 }
 
 fn grep(args: Vec<String>) -> Result<(), Box<Error>> {
