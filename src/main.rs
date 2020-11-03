@@ -59,45 +59,69 @@ fn check_syntax(args: &Vec<String>) -> Result<(), Box<Error>> {
 }
 
 fn execute(args: Vec<String>) -> Result<(), Box<Error>> {
-    match &args[1] {
-        "grep".to_string() => grep(args)?,
-    }
+    let command = parse(&args);
+    command.execute();
     Ok(())
 }
 
 trait Command {
-    fn execute(self) -> ();
+    fn execute(&self) -> ();
 }
 enum Operation {
-    List,
     Show,
     Grep,
-    Add,
-    Delete,
-    Update,
+    // List,
+    // Add,
+    // Delete,
+    // Update,
 }
 struct GrepCommand {
-    operation: Operation,
-    target: String
+    target: String,
 }
 
 impl Command for GrepCommand {
-    fn execute(self) {
-        println!("{}", self.target);
+    fn execute(&self) {
+        let re = Regex::new(&self.target).unwrap();
+        let data = load_data();
+        for rec in data.iter() {
+            let rel = re.find(&rec.service);
+            if rel != None {
+                println!("{}", rec.service);
+            }
+        }
     }
 }
-fn parse (args: &Vec<String>) -> impl Command {
+
+struct ShowCommand {
+    target: String,
+}
+
+impl Command for ShowCommand {
+    fn execute(&self) {
+        let data = load_data();
+        for rec in data.iter() {
+            if self.target == rec.service {
+                println!("{:?}", rec);
+                return;
+            }
+        }
+    }
+}
+
+fn parse(args: &Vec<String>) -> Box<dyn Command> {
     let arg1: &str = &args[1];
-     match arg1 {
-        "grep" => GrepCommand {
-            operation: Operation::Grep,
+    match arg1 {
+        "show" => Box::new(ShowCommand {
             target: args[2].clone(),
-        },
-        // "show" => Operation::Show,
+        }),
+        "grep" => Box::new(GrepCommand {
+            target: args[2].clone(),
+        }),
         // "list" => Operation::List,
         // "add" => Operation::Add,
         // "delete" => Operation::Delete,
         // "update" => Operation::Update,
+        _ => std::process::exit(1),
     }
 }
 
@@ -107,19 +131,6 @@ struct GrepOptions {
 
 struct ShowOptions {
     service: String,
-}
-
-fn grep(args: Vec<String>) -> Result<(), Box<Error>> {
-    let re = Regex::new(&args[2]).unwrap();
-    let data = load_data();
-    for rec in data.iter() {
-        let rel = re.find(&rec.service);
-        if rel != None {
-            println!("{:?}", rec);
-        }
-    }
-
-    Ok(())
 }
 
 #[derive(Debug, Deserialize, Serialize)]
