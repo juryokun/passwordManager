@@ -2,13 +2,29 @@ use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
 use std::env;
-use std::error::Error;
+// use std::error::Error;
 use std::fs::File;
-use std::io;
-use std::process;
+// use std::io;
+// use std::process;
 
+const FILE_NAME: &str = "serviceList.csv";
+
+fn get_file_path() -> String {
+    format!("{}/{}", get_home(), FILE_NAME)
+}
+#[cfg(any(unix))]
+fn get_home() -> String {
+    let home = std::env::var("HOME");
+    home.unwrap()
+}
+#[cfg(target_os = "windows")]
+fn get_home() -> String {
+    let userprofile = std::env::var("USERPROFILE");
+    userprofile.unwrap()
+}
 fn load_data() -> Vec<Record> {
-    let file = File::open("serviceList.csv");
+    let csv_file = get_file_path();
+    let file = File::open(csv_file);
     let mut rdr = csv::Reader::from_reader(file.unwrap());
 
     let mut rel: Vec<Record> = vec![];
@@ -23,10 +39,10 @@ fn main() {
     let args: Vec<String> = env::args().collect();
 
     // コマンドが正しいかチェック
-    check_command(&args[1]);
+    // check_command(&args[1]);
 
     // コマンドの使い方が正しいかチェック
-    check_syntax(&args);
+    // check_syntax(&args);
 
     // コマンド実行
     execute(args);
@@ -50,35 +66,35 @@ fn main() {
     // }
 }
 
-fn check_command(command: &String) -> Result<(), Box<Error>> {
-    Ok(())
-}
+// fn check_command(command: &String) -> Result<(), Box<Error>> {
+//     Ok(())
+// }
 
-fn check_syntax(args: &Vec<String>) -> Result<(), Box<Error>> {
-    Ok(())
-}
+// fn check_syntax(args: &Vec<String>) -> Result<(), Box<Error>> {
+//     Ok(())
+// }
 
-fn execute(args: Vec<String>) -> Result<(), Box<Error>> {
+fn execute(args: Vec<String>) {
     let command = parse(&args);
     command.execute();
-    Ok(())
+    // Ok(())
 }
 
 trait Command {
     fn execute(&self) -> ();
+    fn help(&self) -> ();
 }
-enum Operation {
-    Show,
-    Grep,
-    // List,
-    // Add,
-    // Delete,
-    // Update,
-}
+
 struct GrepCommand {
     target: String,
 }
-
+impl GrepCommand {
+    fn new(args: &Vec<String>) -> Self {
+        Self {
+            target: args[2].clone(),
+        }
+    }
+}
 impl Command for GrepCommand {
     fn execute(&self) {
         let re = Regex::new(&self.target).unwrap();
@@ -90,12 +106,22 @@ impl Command for GrepCommand {
             }
         }
     }
+    fn help(&self) {
+        println!("grep service");
+        println!("example: mpw grep [search_string]");
+    }
 }
 
 struct ShowCommand {
     target: String,
 }
-
+impl ShowCommand {
+    fn new(args: &Vec<String>) -> Self {
+        Self {
+            target: args[2].clone(),
+        }
+    }
+}
 impl Command for ShowCommand {
     fn execute(&self) {
         let data = load_data();
@@ -106,31 +132,32 @@ impl Command for ShowCommand {
             }
         }
     }
+    fn help(&self) {
+        println!("show sevice id, pass, mail and memo");
+        println!("example: mpw show [service]");
+    }
+}
+
+struct ListCommand {}
+impl Command for ListCommand {
+    fn execute(&self) {
+        println!("list, grep, show");
+    }
+    fn help(&self) {
+        println!("show command list");
+        println!("example: mpw list");
+    }
 }
 
 fn parse(args: &Vec<String>) -> Box<dyn Command> {
-    let arg1: &str = &args[1];
-    match arg1 {
-        "show" => Box::new(ShowCommand {
-            target: args[2].clone(),
-        }),
-        "grep" => Box::new(GrepCommand {
-            target: args[2].clone(),
-        }),
-        // "list" => Operation::List,
-        // "add" => Operation::Add,
+    match &*args[1] {
+        "show" => Box::new(ShowCommand::new(args)),
+        "grep" => Box::new(GrepCommand::new(args)),
+        "list" => Box::new(ListCommand {}),
         // "delete" => Operation::Delete,
         // "update" => Operation::Update,
         _ => std::process::exit(1),
     }
-}
-
-struct GrepOptions {
-    target: String,
-}
-
-struct ShowOptions {
-    service: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
