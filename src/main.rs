@@ -9,23 +9,9 @@ use std::fs::File;
 
 const FILE_NAME: &str = "serviceList.csv";
 
-fn get_file_path() -> String {
-    format!("{}/{}", get_home(), FILE_NAME)
-}
-#[cfg(any(unix))]
-fn get_home() -> String {
-    let home = std::env::var("HOME");
-    home.unwrap()
-}
-#[cfg(target_os = "windows")]
-fn get_home() -> String {
-    let userprofile = std::env::var("USERPROFILE");
-    userprofile.unwrap()
-}
 fn load_data() -> Vec<Record> {
-    let csv_file = get_file_path();
-    let file = File::open(csv_file);
-    let mut rdr = csv::Reader::from_reader(file.unwrap());
+    let file = DataFile::new();
+    let mut rdr = csv::Reader::from_reader(file.file_open().unwrap());
 
     let mut rel: Vec<Record> = vec![];
     for result in rdr.deserialize() {
@@ -78,6 +64,36 @@ fn execute(args: Vec<String>) {
     let command = parse(&args);
     command.execute();
     // Ok(())
+}
+struct DataFile {
+    name: String,
+    home_path: String,
+    file_path: String,
+}
+impl DataFile {
+    fn new() -> Self {
+        let name = FILE_NAME.to_string();
+        let home_path = Self::get_home_path();
+        let file_path = format!("{}/{}", home_path, name);
+        Self {
+            name: name,
+            home_path: home_path,
+            file_path: file_path,
+        }
+    }
+    #[cfg(any(unix))]
+    fn get_home_path() -> String {
+        let home = std::env::var("HOME");
+        home.unwrap()
+    }
+    #[cfg(target_os = "windows")]
+    fn get_home_path() -> String {
+        let userprofile = std::env::var("USERPROFILE");
+        userprofile.unwrap()
+    }
+    fn file_open(&self) -> Result<File, std::io::Error> {
+        File::open(&self.file_path)
+    }
 }
 
 trait Command {
