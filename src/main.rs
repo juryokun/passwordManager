@@ -24,14 +24,11 @@ fn load_data() -> Vec<Record> {
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    // コマンドが正しいかチェック
-    // check_command(&args[1]);
-
-    // コマンドの使い方が正しいかチェック
-    // check_syntax(&args);
-
+    // 引数から実行するコマンドを判定する
+    let command = parse_to_command(&args);
     // コマンド実行
-    execute(args);
+    command.execute();
+    // execute(args);
 
     // let write_csv = File::open("data.csv");
     // let mut wtr = csv::Writer::from_writer(vec![]);
@@ -60,11 +57,11 @@ fn main() {
 //     Ok(())
 // }
 
-fn execute(args: Vec<String>) {
-    let command = parse(&args);
-    command.execute();
-    // Ok(())
-}
+// fn execute(args: Vec<String>) {
+//     let command = parse_args(&args);
+//     command.execute();
+//     // Ok(())
+// }
 struct DataFile {
     name: String,
     home_path: String,
@@ -165,14 +162,25 @@ impl Command for ListCommand {
     }
 }
 
-fn parse(args: &Vec<String>) -> Box<dyn Command> {
+struct HelpCommand {}
+impl Command for HelpCommand {
+    fn execute(&self) {
+        println!("below...");
+    }
+    fn help(&self) {
+        self.execute();
+    }
+}
+
+fn parse_to_command(args: &Vec<String>) -> Box<dyn Command> {
     match &*args[1] {
         "show" => Box::new(ShowCommand::new(args)),
         "grep" => Box::new(GrepCommand::new(args)),
         "list" => Box::new(ListCommand {}),
         // "delete" => Operation::Delete,
         // "update" => Operation::Update,
-        _ => std::process::exit(1),
+        _ => Box::new(HelpCommand {}),
+        // _ => std::process::exit(1),
     }
 }
 
