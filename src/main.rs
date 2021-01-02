@@ -4,8 +4,6 @@ use serde::Serialize;
 use std::env;
 // use std::error::Error;
 use std::fs::File;
-// use std::io;
-// use std::process;
 
 const FILE_NAME: &str = "serviceList.csv";
 
@@ -49,19 +47,6 @@ fn main() {
     // }
 }
 
-// fn check_command(command: &String) -> Result<(), Box<Error>> {
-//     Ok(())
-// }
-
-// fn check_syntax(args: &Vec<String>) -> Result<(), Box<Error>> {
-//     Ok(())
-// }
-
-// fn execute(args: Vec<String>) {
-//     let command = parse_args(&args);
-//     command.execute();
-//     // Ok(())
-// }
 struct DataFile {
     name: String,
     home_path: String,
@@ -180,7 +165,6 @@ fn parse_to_command(args: &Vec<String>) -> Box<dyn Command> {
         // "delete" => Operation::Delete,
         // "update" => Operation::Update,
         _ => Box::new(HelpCommand {}),
-        // _ => std::process::exit(1),
     }
 }
 
