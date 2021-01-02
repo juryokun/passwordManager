@@ -89,7 +89,7 @@ struct GrepCommand {
 impl GrepCommand {
     fn new(args: &Vec<String>) -> Self {
         Self {
-            target: args[2].clone(),
+            target: args[2].to_lowercase(),
         }
     }
 }
@@ -98,7 +98,8 @@ impl Command for GrepCommand {
         let re = Regex::new(&self.target).unwrap();
         let data = load_data();
         for rec in data.iter() {
-            let rel = re.find(&rec.service);
+            let t = &rec.service.to_lowercase();
+            let rel = re.find(t);
             if rel != None {
                 println!("{}", rec.service);
             }
@@ -116,7 +117,7 @@ struct ShowCommand {
 impl ShowCommand {
     fn new(args: &Vec<String>) -> Self {
         Self {
-            target: args[2].clone(),
+            target: args[2].to_lowercase(),
         }
     }
 }
@@ -124,7 +125,7 @@ impl Command for ShowCommand {
     fn execute(&self) {
         let data = load_data();
         for rec in data.iter() {
-            if self.target == rec.service {
+            if self.target == rec.service.to_lowercase() {
                 println!("{:?}", rec);
                 return;
             }
