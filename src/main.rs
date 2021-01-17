@@ -177,3 +177,9 @@ struct Record {
     password: String,
     memo: String,
 }
+
+#[test]
+fn test_load_data() {
+    let data = load_data();
+    assert_eq!(data[0].service, "city");
+}
