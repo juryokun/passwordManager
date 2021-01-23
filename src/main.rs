@@ -2,13 +2,12 @@ use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
 use std::env;
-use std::io::{self, Write};
+use std::io::{self, BufWriter, Write};
 // use std::error::Error;
 use std::fs::File;
 
 const FILE_NAME: &str = "serviceList.csv";
 
-#[cfg(not(test))]
 fn load_data() -> Vec<Record> {
     let file = DataFile::new();
     let mut rdr = csv::Reader::from_reader(file.file_open().unwrap());
@@ -20,40 +19,6 @@ fn load_data() -> Vec<Record> {
     }
     rel
 }
-#[cfg(test)]
-fn load_data() -> Vec<Record> {
-    let data = vec![
-        Record {
-            service: "amazon".to_string(),
-            id: "amazon_id.to".to_string(),
-            mail: "amazon_mail".to_string(),
-            password: "amazon_password".to_string(),
-            memo: "amazon_memo".to_string(),
-        },
-        Record {
-            service: "youtuve".to_string(),
-            id: "youtuve_id.to".to_string(),
-            mail: "youtuve_mail".to_string(),
-            password: "youtuve_password".to_string(),
-            memo: "youtuve_memo".to_string(),
-        },
-        Record {
-            service: "google".to_string(),
-            id: "google_id.to".to_string(),
-            mail: "google_mail".to_string(),
-            password: "google_password".to_string(),
-            memo: "google_memo".to_string(),
-        },
-        Record {
-            service: "apple".to_string(),
-            id: "apple_id.to".to_string(),
-            mail: "apple_mail".to_string(),
-            password: "apple_password".to_string(),
-            memo: "apple_memo".to_string(),
-        },
-    ];
-    data
-}
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -64,7 +29,7 @@ fn main() {
     let output = command.execute();
 
     let stdout = io::stdout();
-    let mut stdout = stdout.lock();
+    let mut stdout = BufWriter::new(stdout.lock());
     write_output(
         &mut stdout,
         output.unwrap_or("コマンドに失敗しました。".to_string()),
@@ -116,8 +81,13 @@ impl DataFile {
         let userprofile = std::env::var("USERPROFILE");
         userprofile.unwrap()
     }
+    #[cfg(not(test))]
     fn file_open(&self) -> Result<File, std::io::Error> {
         File::open(&self.file_path)
+    }
+    #[cfg(test)]
+    fn file_open(&self) -> Result<File, std::io::Error> {
+        File::open("rsc/serviceList.csv")
     }
 }
 
@@ -173,7 +143,7 @@ impl Command for ShowCommand {
         let data = load_data();
         for rec in data.iter() {
             if self.target == rec.service.to_lowercase() {
-                return Ok(format!("{:?}", rec));
+                return Ok(format!("{:?}{}", rec, "\n"));
             }
         }
         Ok("".to_string())
@@ -226,6 +196,9 @@ fn parse_to_command(args: &Vec<String>) -> Box<dyn Command> {
 fn write_output<W: Write>(w: &mut W, output: String) {
     write!(w, "{}", output);
 }
+// fn write_output<W: Write>(w: &mut W, output: String) {
+//     write!(w, "{}", output);
+// }
 
 #[derive(Debug, Deserialize, Serialize)]
 struct Record {
@@ -238,15 +211,33 @@ struct Record {
 
 #[test]
 fn test_grep() {
-    let args: Vec<String> = vec![
-        "amazon".to_string(),
-        "amazon".to_string(),
-        "amazon".to_string(),
-    ];
+    let args: Vec<String> = vec!["".to_string(), "".to_string(), "le".to_string()];
     let command = GrepCommand::new(&args);
     let output = command.execute();
-    let mut buf = Vec::<u8>::new();
+    let mut buf = Vec::new();
     write_output(&mut buf, output.unwrap());
 
-    assert_eq!(buf, b"amazon\n");
+    assert_eq!(buf, b"google\napple\n");
+}
+
+#[test]
+fn test_show() {
+    let args: Vec<String> = vec!["".to_string(), "".to_string(), "google".to_string()];
+    let command = ShowCommand::new(&args);
+    let output = command.execute();
+    let mut buf = Vec::new();
+    write_output(&mut buf, output.unwrap());
+
+    let check_str = "Record { service: \"google\", id: \"google_id\", mail: \"google_mail\", password: \"google_password\", memo: \"google_memo\" }\n";
+    assert_eq!(String::from_utf8(buf).unwrap(), check_str);
+}
+
+#[test]
+fn test_list() {
+    let command = ListCommand {};
+    let output = command.execute();
+    let mut buf = Vec::new();
+    write_output(&mut buf, output.unwrap());
+
+    assert_eq!(buf, b"list, grep, show\n");
 }

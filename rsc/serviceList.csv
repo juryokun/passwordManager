@@ -1,0 +1,6 @@
+service,id,mail,password,memo
+amazon,amazon_id,amazon_mail,amazon_password,amazon_memo
+google,google_id,google_mail,google_password,google_memo
+youtube,youtube_id,youtube_mail,youtube_password,youtube_memo
+apple,apple_id,apple_mail,apple_password,apple_memo
+github,github_id,github_mail,github_password,github_memo
