@@ -1,24 +1,10 @@
-use regex::Regex;
-use serde::Deserialize;
-use serde::Serialize;
 use std::env;
 use std::io::{self, BufWriter, Write};
 // use std::error::Error;
-use std::fs::File;
 
-const FILE_NAME: &str = "serviceList.csv";
-
-fn load_data() -> Vec<Record> {
-    let file = DataFile::new();
-    let mut rdr = csv::Reader::from_reader(file.file_open().unwrap());
-
-    let mut rel: Vec<Record> = vec![];
-    for result in rdr.deserialize() {
-        let record: Record = result.unwrap();
-        rel.push(record);
-    }
-    rel
-}
+mod command;
+mod manage_file;
+use command::*;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -55,141 +41,14 @@ fn main() {
     // }
 }
 
-struct DataFile {
-    name: String,
-    home_path: String,
-    file_path: String,
-}
-impl DataFile {
-    fn new() -> Self {
-        let name = FILE_NAME.to_string();
-        let home_path = Self::get_home_path();
-        let file_path = format!("{}/{}", home_path, name);
-        Self {
-            name: name,
-            home_path: home_path,
-            file_path: file_path,
-        }
-    }
-    #[cfg(any(unix))]
-    fn get_home_path() -> String {
-        let home = std::env::var("HOME");
-        home.unwrap()
-    }
-    #[cfg(target_os = "windows")]
-    fn get_home_path() -> String {
-        let userprofile = std::env::var("USERPROFILE");
-        userprofile.unwrap()
-    }
-    #[cfg(not(test))]
-    fn file_open(&self) -> Result<File, std::io::Error> {
-        File::open(&self.file_path)
-    }
-    #[cfg(test)]
-    fn file_open(&self) -> Result<File, std::io::Error> {
-        File::open("rsc/serviceList.csv")
-    }
-}
-
-trait Command {
-    fn execute(&self) -> Result<String, io::Error>;
-    fn help(&self) -> Result<String, io::Error>;
-}
-
-struct GrepCommand {
-    target: String,
-}
-impl GrepCommand {
-    fn new(args: &Vec<String>) -> Self {
-        Self {
-            target: args[2].to_lowercase(),
-        }
-    }
-}
-impl Command for GrepCommand {
-    fn execute(&self) -> Result<String, io::Error> {
-        let mut relval: String = "".to_string();
-        let re = Regex::new(&self.target).unwrap();
-        let data = load_data();
-        for rec in data.iter() {
-            let t = &rec.service.to_lowercase();
-            let rel = re.find(t);
-            if rel != None {
-                relval = format!("{}{}{}", relval, rec.service, "\n");
-            }
-        }
-        Ok(relval)
-    }
-    fn help(&self) -> Result<String, io::Error> {
-        let mut relval = "".to_string();
-        relval = format!("{}{}{}", relval, "grep service", "\n");
-        relval = format!("{}{}{}", relval, "example: mpw grep [search_string]", "\n");
-        Ok(relval)
-    }
-}
-
-struct ShowCommand {
-    target: String,
-}
-impl ShowCommand {
-    fn new(args: &Vec<String>) -> Self {
-        Self {
-            target: args[2].to_lowercase(),
-        }
-    }
-}
-impl Command for ShowCommand {
-    fn execute(&self) -> Result<String, io::Error> {
-        let data = load_data();
-        for rec in data.iter() {
-            if self.target == rec.service.to_lowercase() {
-                return Ok(format!("{:?}{}", rec, "\n"));
-            }
-        }
-        Ok("".to_string())
-    }
-    fn help(&self) -> Result<String, io::Error> {
-        let mut relval: String = "".to_string();
-        relval = format!(
-            "{}{}{}",
-            relval, "show sevice id, pass, mail and memo", "\n"
-        );
-        relval = format!("{}{}{}", relval, "example: mpw show [service]", "\n");
-        Ok(relval)
-    }
-}
-
-struct ListCommand {}
-impl Command for ListCommand {
-    fn execute(&self) -> Result<String, io::Error> {
-        Ok("list, grep, show\n".to_string())
-    }
-    fn help(&self) -> Result<String, io::Error> {
-        let mut relval: String = "".to_string();
-        relval = format!("{}{}{}", relval, "show command list", "\n");
-        relval = format!("{}{}{}", relval, "example: mpw list", "\n");
-        Ok(relval)
-    }
-}
-
-struct HelpCommand {}
-impl Command for HelpCommand {
-    fn execute(&self) -> Result<String, io::Error> {
-        Ok("below...\n".to_string())
-    }
-    fn help(&self) -> Result<String, io::Error> {
-        self.execute()
-    }
-}
-
 fn parse_to_command(args: &Vec<String>) -> Box<dyn Command> {
     match &*args[1] {
-        "show" => Box::new(ShowCommand::new(args)),
-        "grep" => Box::new(GrepCommand::new(args)),
-        "list" => Box::new(ListCommand {}),
+        "show" => Box::new(show::ShowCommand::new(args)),
+        "grep" => Box::new(grep::GrepCommand::new(args)),
+        "list" => Box::new(list::ListCommand {}),
         // "delete" => Operation::Delete,
         // "update" => Operation::Update,
-        _ => Box::new(HelpCommand {}),
+        _ => Box::new(help::HelpCommand {}),
     }
 }
 
@@ -200,19 +59,10 @@ fn write_output<W: Write>(w: &mut W, output: String) {
 //     write!(w, "{}", output);
 // }
 
-#[derive(Debug, Deserialize, Serialize)]
-struct Record {
-    service: String,
-    id: String,
-    mail: String,
-    password: String,
-    memo: String,
-}
-
 #[test]
 fn test_grep() {
     let args: Vec<String> = vec!["".to_string(), "".to_string(), "le".to_string()];
-    let command = GrepCommand::new(&args);
+    let command = grep::GrepCommand::new(&args);
     let output = command.execute();
     let mut buf = Vec::new();
     write_output(&mut buf, output.unwrap());
@@ -223,7 +73,7 @@ fn test_grep() {
 #[test]
 fn test_show() {
     let args: Vec<String> = vec!["".to_string(), "".to_string(), "google".to_string()];
-    let command = ShowCommand::new(&args);
+    let command = show::ShowCommand::new(&args);
     let output = command.execute();
     let mut buf = Vec::new();
     write_output(&mut buf, output.unwrap());
@@ -234,7 +84,7 @@ fn test_show() {
 
 #[test]
 fn test_list() {
-    let command = ListCommand {};
+    let command = list::ListCommand {};
     let output = command.execute();
     let mut buf = Vec::new();
     write_output(&mut buf, output.unwrap());
