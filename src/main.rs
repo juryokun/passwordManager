@@ -59,35 +59,39 @@ fn write_output<W: Write>(w: &mut W, output: String) {
 //     write!(w, "{}", output);
 // }
 
-#[test]
-fn test_grep() {
-    let args: Vec<String> = vec!["".to_string(), "".to_string(), "le".to_string()];
-    let command = grep::GrepCommand::new(&args);
-    let output = command.execute();
-    let mut buf = Vec::new();
-    write_output(&mut buf, output.unwrap());
+mod test {
+    use super::*;
 
-    assert_eq!(buf, b"google\napple\n");
-}
+    #[test]
+    fn test_grep() {
+        let args: Vec<String> = vec!["".to_string(), "".to_string(), "le".to_string()];
+        let command = grep::GrepCommand::new(&args);
+        let output = command.execute();
+        let mut buf = Vec::new();
+        write_output(&mut buf, output.unwrap());
 
-#[test]
-fn test_show() {
-    let args: Vec<String> = vec!["".to_string(), "".to_string(), "google".to_string()];
-    let command = show::ShowCommand::new(&args);
-    let output = command.execute();
-    let mut buf = Vec::new();
-    write_output(&mut buf, output.unwrap());
+        assert_eq!(buf, b"google\napple\n");
+    }
 
-    let check_str = "Record { service: \"google\", id: \"google_id\", mail: \"google_mail\", password: \"google_password\", memo: \"google_memo\" }\n";
-    assert_eq!(String::from_utf8(buf).unwrap(), check_str);
-}
+    #[test]
+    fn test_show() {
+        let args: Vec<String> = vec!["".to_string(), "".to_string(), "google".to_string()];
+        let command = show::ShowCommand::new(&args);
+        let output = command.execute();
+        let mut buf = Vec::new();
+        write_output(&mut buf, output.unwrap());
 
-#[test]
-fn test_list() {
-    let command = list::ListCommand {};
-    let output = command.execute();
-    let mut buf = Vec::new();
-    write_output(&mut buf, output.unwrap());
+        let check_str = "Record { service: \"google\", id: \"google_id\", mail: \"google_mail\", password: \"google_password\", memo: \"google_memo\" }\n";
+        assert_eq!(String::from_utf8(buf).unwrap(), check_str);
+    }
 
-    assert_eq!(buf, b"list, grep, show\n");
+    #[test]
+    fn test_list() {
+        let command = list::ListCommand {};
+        let output = command.execute();
+        let mut buf = Vec::new();
+        write_output(&mut buf, output.unwrap());
+
+        assert_eq!(buf, b"list, grep, show\n");
+    }
 }
