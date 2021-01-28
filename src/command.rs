@@ -6,8 +6,9 @@ pub trait Command {
     fn help(&self) -> Result<String, io::Error>;
 }
 
+pub mod download;
 pub mod grep;
 pub mod help;
 pub mod list;
-// pub mod manage_file;
 pub mod show;
+pub mod upload;
