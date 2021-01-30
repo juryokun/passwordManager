@@ -20,31 +20,14 @@ fn main() {
         &mut stdout,
         output.unwrap_or("コマンドに失敗しました。".to_string()),
     )
-    // execute(args);
-
-    // let write_csv = File::open("data.csv");
-    // let mut wtr = csv::Writer::from_writer(vec![]);
-    // let mut wtr = csv::Writer::from_path("write.csv").unwrap();
-    // for rec in rel.iter() {
-    //     wtr.serialize(rec);
-    // }
-    // wtr.serialize(Record {
-    //     city: "hokkaido".to_string(),
-    //     region: "asia".to_string(),
-    //     country: "japan".to_string(),
-    // });
-    // wtr.into_inner();
-    // wtr.flush();
-    // if let Err(err) = read(data_csv.unwrap()) {
-    //     print_output("error running read: {}", err);
-    //     process::exit(1);
-    // }
 }
 
 fn parse_to_command(args: &Vec<String>) -> Box<dyn Command> {
     match &*args[1] {
         "show" => Box::new(show::ShowCommand::new(args)),
         "grep" => Box::new(grep::GrepCommand::new(args)),
+        "upload" => Box::new(upload::UploadCommand::new(args)),
+        "download" => Box::new(download::DownloadCommand::new(args)),
         "list" => Box::new(list::ListCommand {}),
         // "delete" => Operation::Delete,
         // "update" => Operation::Update,
@@ -61,6 +44,7 @@ fn write_output<W: Write>(w: &mut W, output: String) {
 
 mod test {
     use super::*;
+    use std::path::Path;
 
     #[test]
     fn test_grep() {
@@ -93,5 +77,29 @@ mod test {
         write_output(&mut buf, output.unwrap());
 
         assert_eq!(buf, b"list, grep, show\n");
+    }
+
+    #[test]
+    fn test_upload() {
+        let args: Vec<String> = vec!["".to_string(), "".to_string(), "test".to_string()];
+        let command = upload::UploadCommand::new(&args);
+        let output = command.execute();
+        let mut buf = Vec::new();
+        write_output(&mut buf, output.unwrap());
+
+        assert_eq!(buf, b"Success!");
+        assert_eq!(Path::new("rsc/serviceList.enc").exists(), true);
+    }
+
+    #[test]
+    fn test_download() {
+        let args: Vec<String> = vec!["".to_string(), "".to_string(), "test".to_string()];
+        let command = download::DownloadCommand::new(&args);
+        let output = command.execute();
+        let mut buf = Vec::new();
+        write_output(&mut buf, output.unwrap());
+
+        assert_eq!(buf, b"Success!");
+        assert_eq!(Path::new("rsc/serviceList.csv").exists(), true);
     }
 }
