@@ -1,6 +1,10 @@
 use super::manage_file::*;
 use aesstream::{AesReader, AesWriter};
 use crypto::aessafe::{AesSafe256Decryptor, AesSafe256Encryptor};
+use futures::{stream::Stream, Future};
+use rusoto_core::Region;
+use rusoto_s3::{GetObjectRequest, PutObjectRequest, S3Client, S3};
+use serde::Deserialize;
 use std::fs;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Read, Result, Write};
@@ -24,6 +28,8 @@ impl DownloadCommand {
 impl super::Command for DownloadCommand {
     fn execute(&self) -> Result<String> {
         let file = get_data_file();
+        let key = get_aws_accesskey(&file.home_path);
+        download_file(key.unwrap(), &file.dist_file_path);
         decrypt(&file.dist_file_path, &file.file_path, &self.password)?;
         rewite(&file.file_path, &file.home_path)?;
         Ok("Success!".to_string())
@@ -79,4 +85,51 @@ fn rewite(file_path: &str, home_path: &str) -> Result<()> {
     fs::remove_file(file_path)?;
     fs::rename(&tmp_file_name, file_path)?;
     Ok(())
+}
+
+fn download_file(key: AwsKey, file_path: &str) -> Result<()> {
+    std::env::set_var("AWS_ACCESS_KEY_ID", key.aws_access_key_id);
+    std::env::set_var("AWS_SECRET_ACCESS_KEY", key.aws_secret_access_key);
+    let client = S3Client::new(Region::ApNortheast1);
+    let mut request = GetObjectRequest::default();
+    request.bucket = String::from(key.bucket);
+    cfg_if::cfg_if! {
+        if #[cfg(test)] {
+            request.key = String::from("serviceListTest.enc");
+        } else {
+            request.key = String::from("serviceList.enc");
+        }
+    }
+    let object = client.get_object(request).sync().unwrap();
+    let body = object.body.unwrap().concat2().wait().unwrap();
+    fs::write(file_path, body)?;
+    Ok(())
+}
+fn get_aws_accesskey(path: &str) -> Result<AwsKey> {
+    let file = format!("{}/{}", path, ".aws.key");
+    let key_file = File::open(file)?;
+    let mut rdr = csv::Reader::from_reader(key_file);
+
+    let mut key = rdr.deserialize();
+    let aws_key: AwsKey = key.next().unwrap().unwrap();
+    Ok(aws_key)
+}
+#[derive(Debug, Deserialize, Clone)]
+struct AwsKey {
+    aws_access_key_id: String,
+    aws_secret_access_key: String,
+    bucket: String,
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    #[ignore]
+    fn test_dwfile() {
+        let key = get_aws_accesskey("rsc");
+        let rel = download_file(key.unwrap(), "rsc/serviceList.enc");
+        assert_eq!(rel.unwrap(), ());
+    }
 }

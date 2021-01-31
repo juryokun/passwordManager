@@ -80,6 +80,7 @@ mod test {
     }
 
     #[test]
+    #[ignore]
     fn test_upload() {
         let args: Vec<String> = vec!["".to_string(), "".to_string(), "test".to_string()];
         let command = upload::UploadCommand::new(&args);
@@ -92,6 +93,7 @@ mod test {
     }
 
     #[test]
+    #[ignore]
     fn test_download() {
         let args: Vec<String> = vec!["".to_string(), "".to_string(), "test".to_string()];
         let command = download::DownloadCommand::new(&args);
